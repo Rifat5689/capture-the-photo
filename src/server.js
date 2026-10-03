@@ -2,6 +2,11 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 // import connectDB from './config/db.js'; // To be implemented
 // import apiRoutes from './routes/api.js'; // To be implemented
 
@@ -26,6 +31,18 @@ app.get('/health', (req, res) => {
 
 // Routes Placeholder
 // app.use('/api', apiRoutes);
+
+// Serve static frontend in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../public')));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/index.html'));
+  });
+} else {
+  app.get('/', (req, res) => {
+    res.send('API is running...');
+  });
+}
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {
