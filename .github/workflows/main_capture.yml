@@ -38,6 +38,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build
+    environment: Production
     permissions:
       contents: read #This is required for actions/checkout
 
