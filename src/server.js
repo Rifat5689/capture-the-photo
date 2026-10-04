@@ -7,8 +7,14 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-// import connectDB from './config/db.js'; // To be implemented
-// import apiRoutes from './routes/api.js'; // To be implemented
+
+import cookieParser from 'cookie-parser';
+import connectDB from './config/db.js';
+import authRoutes from './routes/authRoutes.js';
+import newspaperRoutes from './routes/newspaperRoutes.js';
+import visitorRoutes from './routes/visitorRoutes.js';
+import adminVisitorRoutes from './routes/adminVisitorRoutes.js';
+import uploadRoutes from './routes/uploadRoutes.js';
 
 dotenv.config();
 
@@ -23,14 +29,19 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // Basic Health Check
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'NewsLink Capture API running' });
 });
 
-// Routes Placeholder
-// app.use('/api', apiRoutes);
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/admin/newspapers', newspaperRoutes);
+app.use('/api/admin/visitors', adminVisitorRoutes);
+app.use('/api/admin/upload', uploadRoutes);
+app.use('/api/visitor', visitorRoutes);
 
 // Serve static frontend in production
 if (process.env.NODE_ENV === 'production') {
@@ -50,7 +61,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, message: 'Internal Server Error' });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Server is running on port ${PORT}`);
-  // connectDB(); // Initialize DB connection
+  await connectDB();
 });
