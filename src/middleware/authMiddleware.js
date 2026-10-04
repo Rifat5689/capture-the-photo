@@ -2,10 +2,13 @@ import jwt from 'jsonwebtoken';
 import Admin from '../models/Admin.js';
 
 const protect = async (req, res, next) => {
-  let token = req.cookies?.jwt;
+  let token;
 
-  if (!token && req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     token = req.headers.authorization.split(' ')[1];
+  }
+  if (!token || token === 'undefined' || token === 'null') {
+    token = req.cookies?.jwt;
   }
 
   if (token) {
