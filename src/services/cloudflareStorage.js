@@ -8,6 +8,7 @@ const s3 = new AWS.S3({
   secretAccessKey: process.env.CLOUD_STORAGE_SECRET_KEY,
   signatureVersion: 'v4',
   region: 'auto',
+  s3ForcePathStyle: true,
 });
 
 export const uploadPhotoToR2 = async (fileBuffer, originalName, mimetype) => {
