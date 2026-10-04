@@ -1,6 +1,6 @@
 import express from 'express';
 import multer from 'multer';
-import { registerClick, captureVisitor } from '../controllers/visitorController.js';
+import { registerClick, captureVisitor, getNewspaperByLinkId } from '../controllers/visitorController.js';
 
 const router = express.Router();
 
@@ -17,6 +17,7 @@ const upload = multer({
   }
 });
 
+router.get('/:linkId', getNewspaperByLinkId);
 router.post('/:linkId/click', registerClick);
 router.post('/:linkId/capture', upload.single('photo'), captureVisitor);
 

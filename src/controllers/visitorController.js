@@ -12,6 +12,16 @@ export const registerClick = async (req, res) => {
   }
 };
 
+export const getNewspaperByLinkId = async (req, res) => {
+  try {
+    const newspaper = await Newspaper.findOne({ linkId: req.params.linkId });
+    if (!newspaper) return res.status(404).json({ success: false, message: 'Newspaper not found' });
+    res.json({ success: true, data: newspaper });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export const captureVisitor = async (req, res) => {
   try {
     const { linkId } = req.params;
