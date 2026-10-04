@@ -15,6 +15,7 @@ import newspaperRoutes from './routes/newspaperRoutes.js';
 import visitorRoutes from './routes/visitorRoutes.js';
 import adminVisitorRoutes from './routes/adminVisitorRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
+import mediaRoutes from './routes/mediaRoutes.js';
 
 dotenv.config();
 
@@ -22,7 +23,8 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Security and Middleware
-app.use(helmet());
+app.set('trust proxy', 1);
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors({
   origin: true, // This automatically allows any origin to connect, solving all CORS problems
   credentials: true
@@ -42,6 +44,7 @@ app.use('/api/admin/newspapers', newspaperRoutes);
 app.use('/api/admin/visitors', adminVisitorRoutes);
 app.use('/api/admin/upload', uploadRoutes);
 app.use('/api/visitor', visitorRoutes);
+app.use('/api/media', mediaRoutes);
 
 // Serve static frontend in production
 if (process.env.NODE_ENV === 'production') {

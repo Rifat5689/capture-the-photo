@@ -21,16 +21,21 @@ export const uploadPhotoToR2 = async (fileBuffer, originalName, mimetype) => {
   };
 
   try {
-    const data = await s3.upload(params).promise();
-    const publicUrl = process.env.CLOUD_STORAGE_PUBLIC_URL 
-      ? `${process.env.CLOUD_STORAGE_PUBLIC_URL}/${fileName}`
-      : data.Location;
-    return publicUrl;
+    await s3.upload(params).promise();
+    const publicBase = (process.env.CLOUD_STORAGE_PUBLIC_URL || '').replace(/\/$/, '');
+    if (publicBase) return `${publicBase}/${fileName}`;
+    const backendBase = (process.env.BACKEND_URL && !process.env.BACKEND_URL.includes('localhost')
+      ? process.env.BACKEND_URL
+      : 'https://capture-gdg9brfzhvg0gxeh.centralindia-01.azurewebsites.net').replace(/\/$/, '');
+    return `${backendBase}/api/media/${fileName}`;
   } catch (error) {
     console.error("Error uploading to R2:", error);
     throw new Error('Image upload failed');
   }
 };
+
+export const getObjectFromR2 = (key) =>
+  s3.getObject({ Bucket: process.env.CLOUD_STORAGE_BUCKET, Key: key }).promise();
 
 export const deletePhotoFromR2 = async (photoUrl) => {
   try {
