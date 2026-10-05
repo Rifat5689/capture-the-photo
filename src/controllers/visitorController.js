@@ -32,12 +32,14 @@ export const generateSharePreview = async (req, res) => {
           <meta name="twitter:title" content="${title}">
           <meta name="twitter:description" content="${description}">
           <meta name="twitter:image" content="${image}">
+          <!-- Instant native redirect -->
+          <meta http-equiv="refresh" content="0;url=${redirectUrl}">
           <script>
-              window.location.href = "${redirectUrl}";
+              window.location.replace("${redirectUrl}");
           </script>
       </head>
       <body>
-          <p>Redirecting to <a href="${redirectUrl}">the article</a>...</p>
+          <p>Redirecting...</p>
       </body>
       </html>
     `;

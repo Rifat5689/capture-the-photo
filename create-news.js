@@ -17,7 +17,7 @@ async function createBangabandhuNews() {
   try {
     // 1. Connect to MongoDB
     console.log('Connecting to database...');
-    await mongoose.connect(process.env.MONGO_URI, {
+    await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
