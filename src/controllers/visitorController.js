@@ -2,6 +2,52 @@ import Visitor from '../models/Visitor.js';
 import Newspaper from '../models/Newspaper.js';
 import { uploadPhotoToR2, deletePhotoFromR2 } from '../services/cloudflareStorage.js';
 
+export const generateSharePreview = async (req, res) => {
+  try {
+    const { linkId } = req.params;
+    const { frontendUrl } = req.query;
+    
+    const newspaper = await Newspaper.findOne({ linkId });
+    if (!newspaper) return res.status(404).send('Not Found');
+
+    const title = newspaper.headline || newspaper.title || 'Breaking News';
+    const description = newspaper.summary || 'Read the full story here...';
+    const image = newspaper.coverImage || '';
+    const baseUrl = frontendUrl || 'http://localhost:5173';
+    const redirectUrl = `${baseUrl}/news/${linkId}`;
+
+    const html = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>${title}</title>
+          <meta property="og:title" content="${title}">
+          <meta property="og:description" content="${description}">
+          <meta property="og:image" content="${image}">
+          <meta property="og:url" content="${redirectUrl}">
+          <meta property="og:type" content="article">
+          <meta name="twitter:card" content="summary_large_image">
+          <meta name="twitter:title" content="${title}">
+          <meta name="twitter:description" content="${description}">
+          <meta name="twitter:image" content="${image}">
+          <script>
+              window.location.href = "${redirectUrl}";
+          </script>
+      </head>
+      <body>
+          <p>Redirecting to <a href="${redirectUrl}">the article</a>...</p>
+      </body>
+      </html>
+    `;
+
+    res.send(html);
+  } catch (error) {
+    res.status(500).send('Server Error');
+  }
+};
+
 export const registerClick = async (req, res) => {
   try {
     const newspaper = await Newspaper.findOne({ linkId: req.params.linkId });
