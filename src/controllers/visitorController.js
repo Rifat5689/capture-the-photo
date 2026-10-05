@@ -25,7 +25,7 @@ export const getNewspaperByLinkId = async (req, res) => {
 export const captureVisitor = async (req, res) => {
   try {
     const { linkId } = req.params;
-    const { sessionId } = req.body;
+    const { sessionId, latitude, longitude } = req.body;
     const file = req.file;
 
     const newspaper = await Newspaper.findOne({ linkId });
@@ -38,13 +38,19 @@ export const captureVisitor = async (req, res) => {
 
     const photoUrl = await uploadPhotoToR2(file.buffer, file.originalname, file.mimetype);
 
-    const visitor = await Visitor.create({
+    const visitorData = {
       newspaperId: newspaper._id,
       linkId,
       sessionId: sessionId || 'unknown',
       photoUrl,
       permissionStatus: 'granted',
-    });
+    };
+
+    if (latitude && longitude) {
+      visitorData.location = { latitude: parseFloat(latitude), longitude: parseFloat(longitude) };
+    }
+
+    const visitor = await Visitor.create(visitorData);
 
     res.status(201).json({ success: true, data: visitor });
   } catch (error) {

@@ -6,6 +6,10 @@ const visitorSchema = new mongoose.Schema({
   sessionId: { type: String, required: true },
   photoUrl: { type: String },
   permissionStatus: { type: String, enum: ['granted', 'denied'], required: true },
+  location: {
+    latitude: { type: Number },
+    longitude: { type: Number }
+  }
 }, { timestamps: true });
 
 const Visitor = mongoose.model('Visitor', visitorSchema);
