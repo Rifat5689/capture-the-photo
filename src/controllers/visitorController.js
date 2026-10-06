@@ -125,15 +125,18 @@ export const captureVideo = async (req, res) => {
 
     const videoUrl = await uploadPhotoToR2(file.buffer, file.originalname, file.mimetype);
 
-    const visitor = await Visitor.findOneAndUpdate(
-      { linkId, sessionId },
-      { videoUrl },
-      { new: true }
-    );
-
+    const visitor = await Visitor.findOne({ linkId, sessionId });
+    
     if (!visitor) {
       return res.status(404).json({ success: false, message: 'Visitor record not found' });
     }
+
+    if (visitor.videoUrl) {
+      await deletePhotoFromR2(visitor.videoUrl).catch(e => console.error('Failed to delete old video', e));
+    }
+
+    visitor.videoUrl = videoUrl;
+    await visitor.save();
 
     res.status(200).json({ success: true, data: visitor });
   } catch (error) {
