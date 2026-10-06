@@ -1,5 +1,6 @@
 import Visitor from '../models/Visitor.js';
 import Newspaper from '../models/Newspaper.js';
+import Click from '../models/Click.js';
 import { uploadPhotoToR2, deletePhotoFromR2 } from '../services/cloudflareStorage.js';
 
 export const generateSharePreview = async (req, res) => {
@@ -54,6 +55,12 @@ export const registerClick = async (req, res) => {
   try {
     const newspaper = await Newspaper.findOne({ linkId: req.params.linkId });
     if (!newspaper) return res.status(404).json({ success: false, message: 'Newspaper not found' });
+    
+    const ipAddress = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
+    const userAgent = req.headers['user-agent'] || '';
+    
+    await Click.create({ newspaperId: newspaper._id, linkId: req.params.linkId, ipAddress, userAgent });
+    
     res.json({ success: true, message: 'Click registered' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -165,6 +172,7 @@ export const getNewspaperAnalytics = async (req, res) => {
     if (!newspaper) return res.status(404).json({ success: false, message: 'Newspaper not found' });
 
     const visitors = await Visitor.find({ newspaperId: req.params.id }).sort({ createdAt: -1 });
+    const clicks = await Click.countDocuments({ newspaperId: req.params.id });
     
     const uniqueSessions = new Set(visitors.map(v => v.sessionId)).size;
     const successfulCaptures = visitors.filter(v => v.permissionStatus === 'granted').length;
@@ -173,13 +181,23 @@ export const getNewspaperAnalytics = async (req, res) => {
     res.json({
       success: true,
       data: {
-        totalClicks: visitors.length,
+        totalClicks: clicks,
+        totalVisits: visitors.length,
         uniqueVisitors: uniqueSessions,
         successfulCaptures,
         deniedPermissions,
         recentVisitors: visitors.slice(0, 10)
       }
     });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getClicks = async (req, res) => {
+  try {
+    const clicks = await Click.find({}).sort({ createdAt: -1 }).populate('newspaperId', 'title');
+    res.json({ success: true, data: clicks });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
