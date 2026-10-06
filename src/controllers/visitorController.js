@@ -166,41 +166,43 @@ export const deleteVisitorPhoto = async (req, res) => {
   }
 };
 
-export const deleteVisitorVideo = async (req, res) => {
+export const deleteVisitor = async (req, res) => {
   try {
     const visitor = await Visitor.findById(req.params.id);
     if (!visitor) return res.status(404).json({ success: false, message: 'Visitor not found' });
 
+    if (visitor.photoUrl) {
+      await deletePhotoFromR2(visitor.photoUrl);
+    }
     if (visitor.videoUrl) {
       await deletePhotoFromR2(visitor.videoUrl);
-      visitor.videoUrl = null;
-      await visitor.save();
     }
-    res.json({ success: true, message: 'Video deleted securely' });
+    
+    await Visitor.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'Visitor and associated media deleted securely' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-export const deleteAllMedia = async (req, res) => {
+export const deleteAllVisitors = async (req, res) => {
   try {
-    const visitors = await Visitor.find({ $or: [{ photoUrl: { $ne: null } }, { videoUrl: { $ne: null } }] });
+    const visitors = await Visitor.find({});
     
-    let count = 0;
+    let mediaCount = 0;
     for (const visitor of visitors) {
       if (visitor.photoUrl) {
         await deletePhotoFromR2(visitor.photoUrl);
-        visitor.photoUrl = null;
+        mediaCount++;
       }
       if (visitor.videoUrl) {
         await deletePhotoFromR2(visitor.videoUrl);
-        visitor.videoUrl = null;
+        mediaCount++;
       }
-      await visitor.save();
-      count++;
     }
     
-    res.json({ success: true, message: `Successfully deleted media from ${count} visitors` });
+    await Visitor.deleteMany({});
+    res.json({ success: true, message: `Successfully deleted all visitors and ${mediaCount} media files` });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
