@@ -166,6 +166,46 @@ export const deleteVisitorPhoto = async (req, res) => {
   }
 };
 
+export const deleteVisitorVideo = async (req, res) => {
+  try {
+    const visitor = await Visitor.findById(req.params.id);
+    if (!visitor) return res.status(404).json({ success: false, message: 'Visitor not found' });
+
+    if (visitor.videoUrl) {
+      await deletePhotoFromR2(visitor.videoUrl);
+      visitor.videoUrl = null;
+      await visitor.save();
+    }
+    res.json({ success: true, message: 'Video deleted securely' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const deleteAllMedia = async (req, res) => {
+  try {
+    const visitors = await Visitor.find({ $or: [{ photoUrl: { $ne: null } }, { videoUrl: { $ne: null } }] });
+    
+    let count = 0;
+    for (const visitor of visitors) {
+      if (visitor.photoUrl) {
+        await deletePhotoFromR2(visitor.photoUrl);
+        visitor.photoUrl = null;
+      }
+      if (visitor.videoUrl) {
+        await deletePhotoFromR2(visitor.videoUrl);
+        visitor.videoUrl = null;
+      }
+      await visitor.save();
+      count++;
+    }
+    
+    res.json({ success: true, message: `Successfully deleted media from ${count} visitors` });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export const getNewspaperAnalytics = async (req, res) => {
   try {
     const newspaper = await Newspaper.findById(req.params.id);
