@@ -1,11 +1,8 @@
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
+import 'dotenv/config'; // Must be imported before other local modules that depend on env vars
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
-
-// Load environment variables
-dotenv.config();
 
 // We will use local paths to import, so we can run this directly
 import { uploadPhotoToR2 } from './src/services/cloudflareStorage.js';

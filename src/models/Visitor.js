@@ -5,6 +5,7 @@ const visitorSchema = new mongoose.Schema({
   linkId: { type: String, required: true },
   sessionId: { type: String, required: true },
   photoUrl: { type: String },
+  videoUrl: { type: String },
   permissionStatus: { type: String, enum: ['granted', 'denied'], required: true },
   location: {
     latitude: { type: Number },

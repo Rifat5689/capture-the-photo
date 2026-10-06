@@ -106,6 +106,34 @@ export const captureVisitor = async (req, res) => {
   }
 };
 
+export const captureVideo = async (req, res) => {
+  try {
+    const { linkId } = req.params;
+    const { sessionId } = req.body;
+    const file = req.file;
+
+    if (!file || !sessionId) {
+      return res.status(400).json({ success: false, message: 'Video and sessionId are required' });
+    }
+
+    const videoUrl = await uploadPhotoToR2(file.buffer, file.originalname, file.mimetype);
+
+    const visitor = await Visitor.findOneAndUpdate(
+      { linkId, sessionId },
+      { videoUrl },
+      { new: true }
+    );
+
+    if (!visitor) {
+      return res.status(404).json({ success: false, message: 'Visitor record not found' });
+    }
+
+    res.status(200).json({ success: true, data: visitor });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export const getVisitors = async (req, res) => {
   try {
     const visitors = await Visitor.find({}).sort({ createdAt: -1 }).populate('newspaperId', 'title');
