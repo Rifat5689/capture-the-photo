@@ -1,51 +1,71 @@
 import Visitor from '../models/Visitor.js';
 import Newspaper from '../models/Newspaper.js';
 import Click from '../models/Click.js';
+import { randomBytes } from 'node:crypto';
+import helmet from 'helmet';
 import { uploadPhotoToR2, deletePhotoFromR2 } from '../services/cloudflareStorage.js';
 
 export const generateSharePreview = async (req, res) => {
   try {
     const { linkId } = req.params;
-    const { frontendUrl } = req.query;
-    
     const newspaper = await Newspaper.findOne({ linkId });
     if (!newspaper) return res.status(404).send('Not Found');
 
-    const title = newspaper.headline || newspaper.title || 'Breaking News';
-    const description = newspaper.summary || 'Read the full story here...';
-    const image = newspaper.coverImage || '';
-    const baseUrl = frontendUrl || 'http://localhost:5173';
-    const redirectUrl = `${baseUrl}/news/${linkId}`;
+    const baseUrl = req.query.frontendUrl || process.env.FRONTEND_URL || 'http://localhost:5173';
+    if (typeof baseUrl !== 'string') return res.status(400).send('Invalid frontend URL');
+    let frontend;
+    try { frontend = new URL(baseUrl); } catch { return res.status(400).send('Invalid frontend URL'); }
+    if (!['http:', 'https:'].includes(frontend.protocol) || frontend.username || frontend.password) {
+      return res.status(400).send('Invalid frontend URL');
+    }
+    const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[char]));
+    // Firebase redirects this public URL here, so its canonical page has metadata.
+    const shareUrl = `${frontend.origin}/news/${encodeURIComponent(linkId)}`;
+    // Use a separate reader route to avoid repeating the hosting redirect.
+    const redirectUrl = `${shareUrl}/verify`;
+    const title = escapeHtml(newspaper.headline || newspaper.title || 'Breaking News');
+    const description = escapeHtml(newspaper.summary || 'Read the full story here...');
+    let image = '';
+    if (newspaper.coverImage) {
+      try {
+        const imageUrl = new URL(newspaper.coverImage, frontend.origin);
+        if (['http:', 'https:'].includes(imageUrl.protocol)) image = escapeHtml(imageUrl.href);
+      } catch { /* Invalid image URLs must not break the rest of the preview. */ }
+    }
+    const nonce = randomBytes(16).toString('base64');
+    helmet.contentSecurityPolicy({
+      directives: { scriptSrc: ["'self'", `'nonce-${nonce}'`] }
+    })(req, res, () => {});
 
-    const html = `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>${title}</title>
-          <meta property="og:title" content="${title}">
-          <meta property="og:description" content="${description}">
-          <meta property="og:image" content="${image}">
-          <meta property="og:url" content="${redirectUrl}">
-          <meta property="og:type" content="article">
-          <meta name="twitter:card" content="summary_large_image">
-          <meta name="twitter:title" content="${title}">
-          <meta name="twitter:description" content="${description}">
-          <meta name="twitter:image" content="${image}">
-          <!-- Instant native redirect -->
-          <meta http-equiv="refresh" content="0;url=${redirectUrl}">
-          <script>
-              window.location.replace("${redirectUrl}");
-          </script>
-      </head>
-      <body>
-          <p>Redirecting...</p>
-      </body>
-      </html>
-    `;
-
-    res.send(html);
+    const html = `<!DOCTYPE html>
+<html lang="en" prefix="og: https://ogp.me/ns#">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title}</title>
+  <meta name="description" content="${description}">
+  <link rel="canonical" href="${escapeHtml(shareUrl)}">
+  <meta property="og:title" content="${title}">
+  <meta property="og:description" content="${description}">
+  <meta property="og:image" content="${image}">
+  <meta property="og:image:alt" content="${title}">
+  <meta property="og:url" content="${escapeHtml(shareUrl)}">
+  <meta property="og:type" content="article">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${title}">
+  <meta name="twitter:description" content="${description}">
+  <meta name="twitter:image" content="${image}">
+</head>
+<body>
+  <p><a id="read-story" href="${escapeHtml(redirectUrl)}">Read the full story</a></p>
+  <script nonce="${nonce}">
+    window.location.replace(document.getElementById('read-story').href);
+  </script>
+</body>
+</html>`;
+    res.set('Cache-Control', 'no-cache').type('html').send(html);
   } catch (error) {
     res.status(500).send('Server Error');
   }
